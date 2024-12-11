@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量处理 DOCX 关键字替换</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        input,
+        textarea {
+            margin-bottom: 10px;
+        }
+
+        #file-upload {
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        #download-links {
+            margin-top: 20px;
+        }
+
+        .download-link {
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        #download-all {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>批量处理 DOCX 关键字替换</h1>
+
+    <p>上传文件夹中的 DOCX 文件并提供替换的关键字(需要被{}包裹)和对应的替换文本。</p>
+
+    <!-- 文件上传，允许选择文件夹 -->
+    <input type="file" id="file-upload" webkitdirectory multiple />
+
+    <!-- 输入替换数据 -->
+    <textarea id="replacements" rows="10" cols="50" placeholder="请输入替换的关键字和文本（格式：KEYWORD1=Replacement1）"></textarea><br>
+    <!-- 文件后缀输入框 -->
+    <input type="text" id="file-suffix" placeholder="请输入文件后缀 (例如: 张三)" />
+    <button id="process-btn">处理文件</button>
+
+    <div id="download-links"></div>
+    <button id="download-all" style="display:none;">下载所有文件</button>
+
+    <!-- 引入 PizZip, Docxtemplater 和 JSZip -->
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.55.5/build/docxtemplater.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script>
+        document.getElementById('process-btn').onclick = function () {
+            const fileInput = document.getElementById('file-upload');
+            const replacementsInput = document.getElementById('replacements');
+            const suffixInput = document.getElementById('file-suffix');
+            const downloadLinksContainer = document.getElementById('download-links');
+            const downloadAllButton = document.getElementById('download-all');
+
+            if (fileInput.files.length === 0) {
+                alert("请上传至少一个 DOCX 文件！");
+                return;
+            }
+
+            const replacementsText = replacementsInput.value.trim();
+            if (!replacementsText) {
+                alert("请提供关键字和替换文本！");
+                return;
+            }
+            // 获取用户输入的文件后缀
+            const fileSuffix = suffixInput.value.trim() || "processed";
+            // 解析替换规则
+            const replacements = {};
+            const lines = replacementsText.split('\n');
+            for (let line of lines) {
+                const [keyword, replacement] = line.split('=');
+                if (keyword && replacement) {
+                    replacements[keyword.trim()] = replacement.trim();
+                }
+            }
+
+            // 清空下载链接区域
+            downloadLinksContainer.innerHTML = '';
+            downloadAllButton.style.display = 'none';
+
+            // 创建一个 JSZip 实例来打包所有文件
+            const zip = new JSZip();
+            let processedFiles = 0;
+            let errorOccurred = false;
+            const nullGetter = function(part, scopeManager) {
+                throw new Error("文档中存在未替换的占位符");
+            };
+            // 遍历所有文件进行处理
+            Array.from(fileInput.files).forEach(file => {
+                processedFiles++;
+                // 只处理 docx 文件
+                if (file.name.endsWith('.docx')) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const arrayBuffer = e.target.result;
+                        const zipFile = new PizZip(arrayBuffer);
+                        const doc = new window.docxtemplater(zipFile, {
+                            paragraphLoop: true,
+                            linebreaks: true,
+                            nullGetter
+                        });
+
+                        try {
+                            // 设置数据，进行全局替换
+                            doc.render(replacements);
+
+                            // 生成 Blob 数据
+                            const buf = doc.getZip().generate({ type: 'blob' });
+                             // 使用用户输入的后缀修改文件名
+                             const newFileName = file.name.replace('.docx', `_${fileSuffix}.docx`);
+                            
+                            // 将处理后的文件添加到 zip 中
+                            zip.file(newFileName, buf);
+
+                            console.log(processedFiles);
+                            // 如果所有文件处理完成，显示批量下载按钮
+                            if (processedFiles === fileInput.files.length) {
+                                downloadAllButton.style.display = 'block';
+                            }
+                        } catch (error) {
+                            console.error('处理文档时出错:', error);
+                            alert(`处理文档 "${file.name}" 时出错: ` + error.message);
+                            errorOccurred = true;
+                            return;
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+
+            // 批量下载功能
+            downloadAllButton.onclick = function () {
+                if (errorOccurred) {
+                    return;
+                }
+                // 生成整个 ZIP 文件
+                zip.generateAsync({ type: 'blob' }).then(function (content) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = '替换后的文件.zip';
+                    link.click();
+                });
+            };
+        };
+    </script>
+</body>
+
+</html>
