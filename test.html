@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量处理 DOCX 关键字替换</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        input,
+        textarea {
+            margin-bottom: 10px;
+        }
+
+        #file-upload {
+            display: block;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>批量处理 DOCX 关键字替换</h1>
+
+    <p>上传 DOCX 文件并提供替换的关键字和对应的替换文本。</p>
+
+    <!-- 文件上传 -->
+    <input type="file" id="file-upload" />
+
+    <!-- 输入替换数据 -->
+    <textarea id="replacements" rows="10" cols="50" placeholder="请输入替换的关键字和文本（格式：KEYWORD1=Replacement1）"></textarea><br>
+
+    <button id="process-btn">处理文件</button>
+
+    <br><br>
+    <a id="download-link" href="#" style="display:none;" download="output.docx">
+        下载替换后的文件
+    </a>
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.5/pizzip.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.55.5/build/docxtemplater.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.55.1/docxtemplater.js"></script> -->
+
+    <script>
+        document.getElementById('process-btn').onclick = function () {
+            const fileInput = document.getElementById('file-upload');
+            const replacementsInput = document.getElementById('replacements');
+            const downloadLink = document.getElementById('download-link');
+
+            if (fileInput.files.length === 0) {
+                alert("请上传一个 DOCX 文件！");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const replacementsText = replacementsInput.value.trim();
+
+            if (!replacementsText) {
+                alert("请提供关键字和替换文本！");
+                return;
+            }
+
+            // 解析替换规则
+            const replacements = {};
+            const lines = replacementsText.split('\n');
+            for (let line of lines) {
+                const [keyword, replacement] = line.split('=');
+                if (keyword && replacement) {
+                    replacements[keyword.trim()] = replacement.trim();
+                }
+            }
+
+            // 使用 FileReader 读取文件内容
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const arrayBuffer = e.target.result;
+                const zip = new PizZip(arrayBuffer);
+                const doc = new docxtemplater(zip);
+
+                // 设置数据，进行全局替换   
+                doc.setData(replacements);
+
+                try {
+                    // 渲染文档，进行替换
+                    doc.render();
+                    const buf = doc.getZip().generate({ type: 'blob' });
+
+                    // 创建下载链接
+                    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                    const url = URL.createObjectURL(blob);
+                    downloadLink.href = url;
+                    downloadLink.style.display = 'block';
+                } catch (error) {
+                    alert('处理文档时出错: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+    </script>
+</body>
+
+</html>
