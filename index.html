@@ -39,14 +39,15 @@
 <body>
     <h1>批量处理 DOCX 关键字替换</h1>
 
-    <p>上传文件夹中的 DOCX 文件并提供替换的关键字和对应的替换文本。</p>
+    <p>上传文件夹中的 DOCX 文件并提供替换的关键字(需要被{}包裹)和对应的替换文本。</p>
 
     <!-- 文件上传，允许选择文件夹 -->
     <input type="file" id="file-upload" webkitdirectory multiple />
 
     <!-- 输入替换数据 -->
     <textarea id="replacements" rows="10" cols="50" placeholder="请输入替换的关键字和文本（格式：KEYWORD1=Replacement1）"></textarea><br>
-
+    <!-- 文件后缀输入框 -->
+    <input type="text" id="file-suffix" placeholder="请输入文件后缀 (例如: 张三)" />
     <button id="process-btn">处理文件</button>
 
     <div id="download-links"></div>
@@ -61,6 +62,7 @@
         document.getElementById('process-btn').onclick = function () {
             const fileInput = document.getElementById('file-upload');
             const replacementsInput = document.getElementById('replacements');
+            const suffixInput = document.getElementById('file-suffix');
             const downloadLinksContainer = document.getElementById('download-links');
             const downloadAllButton = document.getElementById('download-all');
 
@@ -74,7 +76,8 @@
                 alert("请提供关键字和替换文本！");
                 return;
             }
-
+            // 获取用户输入的文件后缀
+            const fileSuffix = suffixInput.value.trim() || "processed";
             // 解析替换规则
             const replacements = {};
             const lines = replacementsText.split('\n');
@@ -117,9 +120,11 @@
 
                             // 生成 Blob 数据
                             const buf = doc.getZip().generate({ type: 'blob' });
-
+                             // 使用用户输入的后缀修改文件名
+                             const newFileName = file.name.replace('.docx', `_${fileSuffix}.docx`);
+                            
                             // 将处理后的文件添加到 zip 中
-                            zip.file(file.name, buf);
+                            zip.file(newFileName, buf);
 
                             console.log(processedFiles);
                             // 如果所有文件处理完成，显示批量下载按钮
