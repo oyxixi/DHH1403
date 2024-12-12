@@ -164,7 +164,7 @@
                 // 批量下载按钮
                 downloadButton.click(function () {
                     if (errorOccurred) return;
-                    const zipFilename = downloadFilename + '.zip';
+                    const zipFilename = downloadFileName + '.zip';
                     zip.generateAsync({ type: 'blob' }).then(function (content) {
                         const link = document.createElement('a');
                         link.href = URL.createObjectURL(content);
