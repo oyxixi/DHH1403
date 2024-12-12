@@ -78,6 +78,7 @@
         <input type="file" id="file-upload" webkitdirectory multiple />
         <textarea id="replacements" rows="10" placeholder="请输入替换的关键字和文本（格式：KEYWORD1=Replacement1）"></textarea>
         <input type="text" id="file-suffix" placeholder="请输入文件后缀 (例如: 张三)" />
+        <input type="text" id="custom-filename" placeholder="自定义文件名 (可选)" />
         <button id="process-btn">处理文件</button>
 
         <div id="messages"></div>
@@ -94,6 +95,7 @@
                 const fileInput = $('#file-upload')[0];
                 const replacementsInput = $('#replacements').val().trim();
                 const suffixInput = $('#file-suffix').val().trim() || 'processed';
+                const downloadFileName = $('#custom-filename').val().trim() || '替换后的文件';
                 const messages = $('#messages');
                 const downloadButton = $('#download-all');
                 const zip = new JSZip();
@@ -162,10 +164,11 @@
                 // 批量下载按钮
                 downloadButton.click(function () {
                     if (errorOccurred) return;
+                    const zipFilename = downloadFilename + '.zip';
                     zip.generateAsync({ type: 'blob' }).then(function (content) {
                         const link = document.createElement('a');
                         link.href = URL.createObjectURL(content);
-                        link.download = '替换后的文件.zip';
+                        link.download = zipFilename;
                         link.click();
                     });
                 });
