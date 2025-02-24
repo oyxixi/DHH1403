@@ -153,8 +153,8 @@
                             } catch (error) {
                                 console.error('处理文档时出错:', error);
                                 showMessage('error', `处理文档 "${file.name}" 时出错: ${error.message}`);
-                                errorOccurred = true;
-                                return;
+                                // errorOccurred = true;
+                                // return;
                             }
                         };
                         reader.readAsArrayBuffer(file);
