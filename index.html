@@ -126,9 +126,9 @@
                     }
                 });
 
-                const nullGetter = function (part, scopeManager) {
-                    throw new Error("文档中存在未替换的占位符");
-                };
+                // const nullGetter = function (part, scopeManager) {
+                //     throw new Error("文档中存在未替换的占位符");
+                // };
 
                 // 处理上传的文件
                 Array.from(fileInput.files).forEach(function (file) {
@@ -138,7 +138,7 @@
                         reader.onload = function (e) {
                             const arrayBuffer = e.target.result;
                             const zipFile = new PizZip(arrayBuffer);
-                            const doc = new window.docxtemplater(zipFile, { paragraphLoop: true, linebreaks: true, nullGetter });
+                            const doc = new window.docxtemplater(zipFile, { paragraphLoop: true, linebreaks: true});
 
                             try {
                                 doc.render(replacements);  // 渲染文档并进行替换
